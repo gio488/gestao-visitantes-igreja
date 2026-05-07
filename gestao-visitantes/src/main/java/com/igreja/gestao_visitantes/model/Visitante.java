@@ -14,10 +14,8 @@ public class Visitante {
     private Long id;
 
     private String nome;
-    private String telefone;
-    private String cidade;
+    private String nomeIgreja;
     private boolean evangelico;
-
     private LocalDate dataVisita = LocalDate.now();
 
     @OneToMany(cascade = CascadeType.ALL)
