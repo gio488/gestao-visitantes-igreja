@@ -12,10 +12,8 @@ public class VisitanteService {
     @Autowired
     private VisitanteRepository repository;
 
-    public Visitante salvar(Visitante visitante) {
-        return repository.save(visitante);
+    public Visitante salvar(Visitante visitante) { return repository.save(visitante);
     }
-
     public List<Visitante> listarTodos() {
         return repository.findAll();
     }
