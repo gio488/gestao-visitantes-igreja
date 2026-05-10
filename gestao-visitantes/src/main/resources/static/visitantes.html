@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>AD Gestão - Cadastro de Visitantes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar { background-color: #1a3a5a; }
+        body { background-color: #f4f7f6; }
+        .card { border: none; border-radius: 12px; }
+        .btn-primary { background-color: #1a3a5a; border: none; }
+        .btn-primary:hover { background-color: #122a42; }
+        .familiar-item { background-color: #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark shadow mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold" href="/index.html">Assembleia de Deus</a>
+        <div>
+            <a href="/avisos.html" class="btn btn-warning btn-sm fw-bold me-2">Gerenciar Avisos</a>
+            <a href="/logout" class="btn btn-danger btn-sm">Sair do Sistema</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mb-5">
+    <div class="card shadow-sm p-4 mb-4">
+        <h4 class="mb-4">Novo Cadastro de Visitante</h4>
+        <form id="formVisitante">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Nome do Visitante</label>
+                    <input type="text" id="nome" class="form-control" placeholder="Nome completo" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Vem de qual Igreja?</label>
+                    <input type="text" id="nomeIgreja" class="form-control" placeholder="Nome da congregação">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">É Evangélico?</label>
+                    <select id="evangelico" class="form-select">
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h6 class="text-secondary">Familiares Acompanhantes</h6>
+                <div id="lista-familiares"></div>
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addFamiliar()">+ Adicionar Familiar</button>
+            </div>
+
+            <hr class="my-4">
+            <button type="submit" class="btn btn-primary w-100 p-2 fw-bold">FINALIZAR E SALVAR CADASTRO</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm p-4">
+        <h4>Visitantes Recentes</h4>
+        <table class="table table-hover mt-3">
+            <thead class="table-light">
+            <tr>
+                <th>Nome</th>
+                <th>Igreja</th>
+                <th>Evangélico</th>
+            </tr>
+            </thead>
+            <tbody id="tabela-visitantes"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function addFamiliar() {
+        const container = document.getElementById('lista-familiares');
+        const div = document.createElement('div');
+        div.className = 'familiar-item shadow-sm border';
+        div.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-5"><input type="text" class="form-control f-nome" placeholder="Nome do familiar" required></div>
+                <div class="col-md-4"><input type="text" class="form-control f-igreja" placeholder="Igreja dele(a)"></div>
+                <div class="col-md-2">
+                    <select class="form-select f-evangelico">
+                        <option value="true">Evangélico</option>
+                        <option value="false">Não evang.</option>
+                    </select>
+                </div>
+                <div class="col-md-1 text-end"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.familiar-item').remove()">X</button></div>
+            </div>`;
+        container.appendChild(div);
+    }
+
+    document.getElementById('formVisitante').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const blocosFamiliares = document.querySelectorAll('.familiar-item');
+        const listaFamiliares = Array.from(blocosFamiliares).map(bloco => ({
+            nome: bloco.querySelector('.f-nome').value,
+            nomeIgreja: bloco.querySelector('.f-igreja').value,
+            evangelico: bloco.querySelector('.f-evangelico').value === 'true'
+        }));
+
+        fetch('/api/visitantes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: document.getElementById('nome').value,
+                nomeIgreja: document.getElementById('nomeIgreja').value,
+                evangelico: document.getElementById('evangelico').value === 'true',
+                familiares: listaFamiliares
+            })
+        }).then(res => { if(res.ok) { alert("Salvo com sucesso!"); location.reload(); } });
+    });
+
+    fetch('/api/visitantes').then(res => res.json()).then(data => {
+        const tabela = document.getElementById('tabela-visitantes');
+        data.forEach(v => {
+            tabela.innerHTML += `<tr><td>${v.nome}</td><td>${v.nomeIgreja || '---'}</td><td>${v.evangelico ? '✅ Sim' : '❌ Não'}</td></tr>`;
+        });
+    });
+</script>
+</body>
+</html>
