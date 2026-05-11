@@ -8,22 +8,39 @@
         .navbar { background-color: #1a3a5a; }
         body { background-color: #f4f7f6; }
         .card { border: none; border-radius: 12px; }
+        .editando { border: 2px solid #ffc107 !important; background-color: #fffdf5; }
+        .btn-warning, .btn-success, .btn-primary, .btn-danger {
+        color: #000000 !important;
+        font-weight: bold; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark shadow mb-4">
+<nav class="navbar navbar-dark shadow mb-4" style="background-color: #1a3a5a; min-height: 80px;">
     <div class="container d-flex justify-content-between align-items-center">
-        <a class="navbar-brand fw-bold" href="/visitantes.html">← Voltar para Visitantes</a>
-        <a href="/logout" class="btn btn-danger btn-sm">Sair do Sistema</a>
+        <a class="navbar-brand p-0 m-0 d-flex align-items-center" href="/visitantes.html" style="text-decoration: none;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid white;
+                        background-color: #ffffff; display: flex; align-items: center;
+                        justify-content: center; font-size: 28px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                ⛪
+            </div>
+            <span class="ms-3 fw-bold" style="font-size: 1.1rem;">Assembleia de Deus - Área 7</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <a href="/visitantes.html" class="btn btn-light btn-sm fw-bold me-2">← Voltar</a>
+            <a href="/logout" class="btn btn-danger btn-sm">Sair</a>
+        </div>
     </div>
 </nav>
 
 <div class="container">
-    <div class="card shadow-sm p-4 mb-4">
-        <h4>Publicar Novo Aviso no Mural</h4>
-        <p class="text-muted">O que você escrever aqui aparecerá nos cards da página inicial.</p>
+    <div id="cardForm" class="card shadow-sm p-4 mb-4">
+        <h4 id="formTitulo">Publicar Novo Aviso no Mural</h4>
+        <p class="text-muted">Preencha os dados abaixo para atualizar o mural da igreja.</p>
+
         <form id="formAviso">
+            <input type="hidden" id="avisoId">
+
             <div class="mb-3">
                 <label class="form-label fw-bold">Título do Aviso</label>
                 <input type="text" id="titulo" class="form-control" placeholder="Ex: Culto de Jovens" required>
@@ -32,7 +49,10 @@
                 <label class="form-label fw-bold">Mensagem</label>
                 <textarea id="mensagem" class="form-control" rows="3" placeholder="Data, horário e detalhes..." required></textarea>
             </div>
-            <button type="submit" class="btn btn-success w-100 fw-bold">PUBLICAR NO MURAL</button>
+            <div class="d-flex gap-2">
+                <button type="submit" id="btnSalvar" class="btn btn-success flex-grow-1 fw-bold">PUBLICAR NO MURAL</button>
+                <button type="button" id="btnCancelar" class="btn btn-secondary d-none" onclick="cancelarEdicao()">Cancelar</button>
+            </div>
         </form>
     </div>
 
@@ -42,35 +62,109 @@
     </div>
 </div>
 
-<script>
-    document.getElementById('formAviso').addEventListener('submit', function(e) {
-        e.preventDefault();
-        fetch('/api/informativos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                titulo: document.getElementById('titulo').value,
-                mensagem: document.getElementById('mensagem').value
-            })
-        }).then(() => { alert("Aviso publicado!"); location.reload(); });
-    });
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    fetch('/api/informativos').then(res => res.json()).then(data => {
-        const lista = document.getElementById('lista-avisos-adm');
-        data.forEach(a => {
-            lista.innerHTML += `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div><strong>${a.titulo}</strong><br><small>${a.mensagem}</small></div>
-                    <button class="btn btn-danger btn-sm" onclick="deletarAviso(${a.id})">Excluir</button>
-                </div>`;
+<script>
+    const formAviso = document.getElementById('formAviso');
+    const listaAvisos = document.getElementById('lista-avisos-adm');
+
+    function carregarAvisos() {
+        fetch('/api/informativos')
+            .then(res => res.json())
+            .then(data => {
+                listaAvisos.innerHTML = '';
+                data.forEach(a => {
+                    listaAvisos.innerHTML += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div style="flex: 1;">
+                                <strong class="text-primary">${a.titulo}</strong><br>
+                                <small class="text-dark">${a.mensagem}</small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-warning btn-sm fw-bold" onclick='prepararEdicao(${JSON.stringify(a)})'> Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="deletarAviso(${a.id})">Excluir</button>
+                            </div>
+                        </div>`;
+                });
+            });
+    }
+
+    formAviso.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('avisoId').value;
+        const dados = {
+            titulo: document.getElementById('titulo').value,
+            mensagem: document.getElementById('mensagem').value
+        };
+
+        const url = id ? `/api/informativos/${id}` : '/api/informativos';
+        const metodo = id ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: metodo,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        }).then(response => {
+            if(response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: id ? 'Aviso Atualizado!' : 'Aviso Publicado!',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    cancelarEdicao();
+                    carregarAvisos();
+                });
+            }
         });
     });
 
-    function deletarAviso(id) {
-        if(confirm("Deseja apagar este aviso?")) {
-            fetch(`/api/informativos/${id}`, { method: 'DELETE' }).then(() => location.reload());
-        }
+    function prepararEdicao(aviso) {
+        document.getElementById('avisoId').value = aviso.id;
+        document.getElementById('titulo').value = aviso.titulo;
+        document.getElementById('mensagem').value = aviso.mensagem;
+
+        document.getElementById('formTitulo').innerText = "Editando Aviso";
+        document.getElementById('cardForm').classList.add('editando');
+        document.getElementById('btnSalvar').innerText = "SALVAR ALTERAÇÕES";
+        document.getElementById('btnSalvar').className = "btn btn-warning flex-grow-1 fw-bold";
+        document.getElementById('btnCancelar').classList.remove('d-none');
+
+        window.scrollTo(0, 0);
     }
+
+    function cancelarEdicao() {
+        formAviso.reset();
+        document.getElementById('avisoId').value = '';
+        document.getElementById('formTitulo').innerText = "Publicar Novo Aviso no Mural";
+        document.getElementById('cardForm').classList.remove('editando');
+        document.getElementById('btnSalvar').innerText = "PUBLICAR NO MURAL";
+        document.getElementById('btnSalvar').className = "btn btn-success flex-grow-1 fw-bold";
+        document.getElementById('btnCancelar').classList.add('d-none');
+    }
+
+    function deletarAviso(id) {
+        Swal.fire({
+            title: 'Tem certeza?',
+            text: "Este aviso sairá do mural imediatamente!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#1a3a5a',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/informativos/${id}`, { method: 'DELETE' })
+                    .then(() => {
+                        Swal.fire('Excluído!', 'O aviso foi removido.', 'success');
+                        carregarAvisos();
+                    });
+            }
+        });
+    }
+
+    carregarAvisos();
 </script>
 </body>
 </html>

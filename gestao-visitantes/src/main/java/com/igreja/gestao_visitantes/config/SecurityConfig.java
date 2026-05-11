@@ -37,10 +37,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login.html")      // Indica seu arquivo novo
-                        .loginProcessingUrl("/login")  // O Spring cuida disso sozinho
+                        .loginPage("/login.html")
+                        .loginProcessingUrl("/login")
                         .defaultSuccessUrl("/visitantes.html", true)
-                        .failureUrl("/login.html?error=true") // Se errar, volta com erro
+                        .failureUrl("/login.html?error=true")
                         .permitAll()
 
                 )

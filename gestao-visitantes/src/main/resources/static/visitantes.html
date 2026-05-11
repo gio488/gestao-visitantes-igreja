@@ -11,24 +11,42 @@
         .btn-primary { background-color: #1a3a5a; border: none; }
         .btn-primary:hover { background-color: #122a42; }
         .familiar-item { background-color: #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
+        .editando { border: 2px solid #ffc107 !important; background-color: #fffdf5; }
+        #btnSalvar {
+        color: white !important;}
+        .btn-warning, .btn-success, .btn-primary, .btn-danger {
+        color: #000000 !important;
+        font-weight: bold; }
     </style>
 </head>
 <body>
-
-<nav class="navbar navbar-dark shadow mb-4">
+<nav class="navbar navbar-dark shadow mb-4" style="background-color: #1a3a5a; min-height: 80px;">
     <div class="container d-flex justify-content-between align-items-center">
-        <a class="navbar-brand fw-bold" href="/index.html">Assembleia de Deus</a>
-        <div>
-            <a href="/avisos.html" class="btn btn-warning btn-sm fw-bold me-2">Gerenciar Avisos</a>
-            <a href="/logout" class="btn btn-danger btn-sm">Sair do Sistema</a>
+        <a class="navbar-brand p-0 m-0 d-flex align-items-center" href="/index.html" style="text-decoration: none;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid white;
+                        background-color: #ffffff; display: flex; align-items: center;
+                        justify-content: center; font-size: 28px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                ⛪
+            </div>
+            <span class="ms-3 fw-bold d-none d-sm-inline" style="font-size: 1.1rem; letter-spacing: 0.5px;">
+                Assembleia de Deus - Área 7
+            </span>
+        </a>
+
+        <div class="d-flex align-items-center">
+            <a href="/api/visitantes/exportar" class="btn btn-success btn-sm fw-bold me-2">Baixar Planilha Excel</a>
+            <a href="/avisos.html" class="btn btn-warning btn-sm fw-bold me-2">Enviar Avisos</a>
+            <a href="/logout" class="btn btn-danger btn-sm">Sair</a>
         </div>
     </div>
 </nav>
 
 <div class="container mb-5">
-    <div class="card shadow-sm p-4 mb-4">
-        <h4 class="mb-4">Novo Cadastro de Visitante</h4>
+    <div id="cardForm" class="card shadow-sm p-4 mb-4">
+        <h4 id="formTitulo" class="mb-4">Novo Cadastro de Visitante</h4>
         <form id="formVisitante">
+            <input type="hidden" id="visitanteId">
+
             <div class="row g-3">
                 <div class="col-md-5">
                     <label class="form-label fw-bold">Nome do Visitante</label>
@@ -54,72 +72,181 @@
             </div>
 
             <hr class="my-4">
-            <button type="submit" class="btn btn-primary w-100 p-2 fw-bold">FINALIZAR E SALVAR CADASTRO</button>
+            <div class="d-flex gap-2">
+                <button type="submit" id="btnSalvar" class="btn btn-primary w-100 p-2 fw-bold ">FINALIZAR E SALVAR CADASTRO</button>
+                <button type="button" id="btnCancelar" class="btn btn-secondary d-none" onclick="cancelarEdicao()">Cancelar</button>
+            </div>
         </form>
     </div>
 
     <div class="card shadow-sm p-4">
         <h4>Visitantes Recentes</h4>
-        <table class="table table-hover mt-3">
-            <thead class="table-light">
-            <tr>
-                <th>Nome</th>
-                <th>Igreja</th>
-                <th>Evangélico</th>
-            </tr>
-            </thead>
-            <tbody id="tabela-visitantes"></tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover mt-3">
+                <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>Igreja</th>
+                    <th>Evangélico</th>
+                    <th>Ações</th>
+                </tr>
+                </thead>
+                <tbody id="tabela-visitantes"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-    function addFamiliar() {
+
+    function addFamiliar(dados = null) {
         const container = document.getElementById('lista-familiares');
         const div = document.createElement('div');
         div.className = 'familiar-item shadow-sm border';
+
         div.innerHTML = `
             <div class="row g-2">
-                <div class="col-md-5"><input type="text" class="form-control f-nome" placeholder="Nome do familiar" required></div>
-                <div class="col-md-4"><input type="text" class="form-control f-igreja" placeholder="Igreja dele(a)"></div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control f-nome" placeholder="Nome" value="${dados ? dados.nome : ''}" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control f-parentesco" placeholder="Parentesco" value="${dados ? dados.parentesco : ''}" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control f-igreja" placeholder="Igreja" value="${dados ? (dados.nomeIgreja || '') : ''}">
+                </div>
                 <div class="col-md-2">
                     <select class="form-select f-evangelico">
-                        <option value="true">Evangélico</option>
-                        <option value="false">Não evang.</option>
+                        <option value="true" ${dados && dados.evangelico ? 'selected' : ''}>Sim</option>
+                        <option value="false" ${dados && !dados.evangelico ? 'selected' : ''}>Não</option>
                     </select>
                 </div>
-                <div class="col-md-1 text-end"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.familiar-item').remove()">X</button></div>
-            </div>`;
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.familiar-item').remove()">X</button>
+                </div>
+            </div>
+        `;
         container.appendChild(div);
+    }
+
+    function carregarVisitantes() {
+        fetch('/api/visitantes').then(res => res.json()).then(data => {
+            const tabela = document.getElementById('tabela-visitantes');
+            tabela.innerHTML = '';
+            data.forEach(v => {
+
+                const vJson = JSON.stringify(v).replace(/'/g, "&apos;");
+                tabela.innerHTML += `
+                    <tr>
+                        <td><strong>${v.nome}</strong></td>
+                        <td>${v.nomeIgreja || '---'}</td>
+                        <td>${v.evangelico ? ' Sim' : ' Não'}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick='prepararEdicao(${vJson})'>Editar</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletarVisitante(${v.id})">Excluir</button>
+                        </td>
+                    </tr>`;
+            });
+        });
     }
 
     document.getElementById('formVisitante').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        const id = document.getElementById('visitanteId').value;
         const blocosFamiliares = document.querySelectorAll('.familiar-item');
-        const listaFamiliares = Array.from(blocosFamiliares).map(bloco => ({
-            nome: bloco.querySelector('.f-nome').value,
-            nomeIgreja: bloco.querySelector('.f-igreja').value,
-            evangelico: bloco.querySelector('.f-evangelico').value === 'true'
-        }));
+        const listaFamiliares = Array.from(blocosFamiliares).map(bloco => {
+            return {
+                nome: bloco.querySelector('.f-nome').value,
+                parentesco: bloco.querySelector('.f-parentesco').value,
+                nomeIgreja: bloco.querySelector('.f-igreja').value,
+                evangelico: bloco.querySelector('.f-evangelico').value === 'true'
+            };
+        });
 
-        fetch('/api/visitantes', {
-            method: 'POST',
+        const dados = {
+            nome: document.getElementById('nome').value,
+            nomeIgreja: document.getElementById('nomeIgreja').value,
+            evangelico: document.getElementById('evangelico').value === 'true',
+            familiares: listaFamiliares
+        };
+
+        const url = id ? `/api/visitantes/${id}` : '/api/visitantes';
+        const metodo = id ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: metodo,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nome: document.getElementById('nome').value,
-                nomeIgreja: document.getElementById('nomeIgreja').value,
-                evangelico: document.getElementById('evangelico').value === 'true',
-                familiares: listaFamiliares
-            })
-        }).then(res => { if(res.ok) { alert("Salvo com sucesso!"); location.reload(); } });
-    });
-
-    fetch('/api/visitantes').then(res => res.json()).then(data => {
-        const tabela = document.getElementById('tabela-visitantes');
-        data.forEach(v => {
-            tabela.innerHTML += `<tr><td>${v.nome}</td><td>${v.nomeIgreja || '---'}</td><td>${v.evangelico ? '✅ Sim' : '❌ Não'}</td></tr>`;
+            body: JSON.stringify(dados)
+        })
+        .then(res => {
+            if(res.ok) {
+                Swal.fire('Sucesso!', id ? 'Cadastro atualizado!' : 'Cadastro realizado!', 'success')
+                .then(() => {
+                    cancelarEdicao();
+                    carregarVisitantes();
+                });
+            }
         });
     });
+
+
+    function prepararEdicao(v) {
+        document.getElementById('visitanteId').value = v.id;
+        document.getElementById('nome').value = v.nome;
+        document.getElementById('nomeIgreja').value = v.nomeIgreja || '';
+        document.getElementById('evangelico').value = v.evangelico.toString();
+
+        document.getElementById('lista-familiares').innerHTML = '';
+        if (v.familiares) {
+            v.familiares.forEach(f => addFamiliar(f));
+        }
+
+        document.getElementById('formTitulo').innerText = "Editando Visitante";
+        document.getElementById('cardForm').classList.add('editando');
+        document.getElementById('btnSalvar').innerText = "SALVAR ALTERAÇÕES";
+        document.getElementById('btnSalvar').className = "btn btn-warning w-100 p-2 fw-bold";
+        document.getElementById('btnCancelar').classList.remove('d-none');
+
+        window.scrollTo(0, 0);
+    }
+
+    function cancelarEdicao() {
+        document.getElementById('formVisitante').reset();
+        document.getElementById('visitanteId').value = '';
+        document.getElementById('lista-familiares').innerHTML = '';
+        document.getElementById('formTitulo').innerText = "Novo Cadastro de Visitante";
+        document.getElementById('cardForm').classList.remove('editando');
+        document.getElementById('btnSalvar').innerText = "FINALIZAR E SALVAR CADASTRO";
+        document.getElementById('btnSalvar').className = "btn btn-primary w-100 p-2 fw-bold";
+        document.getElementById('btnCancelar').classList.add('d-none');
+    }
+
+    function deletarVisitante(id) {
+        Swal.fire({
+            title: 'Excluir visitante?',
+            text: "Isso apagará o visitante e os familiares vinculados!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#1a3a5a',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/visitantes/${id}`, { method: 'DELETE' })
+                .then(() => {
+                    Swal.fire('Deletado!', 'O registro foi removido.', 'success');
+                    carregarVisitantes();
+                });
+            }
+        });
+    }
+
+
+    carregarVisitantes();
 </script>
 </body>
 </html>
