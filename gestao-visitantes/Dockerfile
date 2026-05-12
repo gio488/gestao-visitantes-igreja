@@ -1,19 +1,9 @@
 
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
-
-COPY pom.xml .
-RUN mvn dependency:go-offline
-
-COPY src ./src
-RUN mvn clean package -DskipTests
-
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-
-COPY --from=build /app/target/*.jar app.jar
-
+COPY . .
+RUN chmod +x mvnw
+RUN ./mvnw package -DskipTests
 EXPOSE 8080
 
-# 7. Comando para executar o .jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["sh", "-c", "java -jar -Dspring.datasource.url=jdbc:postgresql://db.udggxlfrhiccfiwfupv.supabase.co:5432/postgres?sslmode=require -Dspring.datasource.username=postgres -Dspring.datasource.password=giovanna8591 $(find . -name '*.jar' | grep -v original | head -1)"]
