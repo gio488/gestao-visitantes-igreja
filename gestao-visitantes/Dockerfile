@@ -1,20 +1,19 @@
-FROM eclipse-temurin:21-jdk-alpine
 
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-COPY mvnw .
-COPY .mvn .mvn
 COPY pom.xml .
+RUN mvn dependency:go-offline
 
-RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-COPY src src
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
 
-RUN ./mvnw clean package -DskipTests
-
-RUN ls -la target/
+COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "java -jar target/*.jar"]
+# 7. Comando para executar o .jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
