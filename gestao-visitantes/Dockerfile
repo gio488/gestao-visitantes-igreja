@@ -1,8 +1,16 @@
-FROM maven:3.8.5-openjdk-17 AS build
-COPY . .
-RUN mvn clean package -DskipTests
+FROM eclipse-temurin:21-jdk-alpine
 
-FROM openjdk:17-jdk-slim
-COPY --from=build /target/*.jar app.jar
+WORKDIR /app
+
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+RUN ./mvnw dependency:go-offline
+
+COPY src ./src
+
+RUN ./mvnw clean package -DskipTests
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+CMD ["java", "-jar", "target/*.jar"]
